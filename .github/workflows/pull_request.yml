@@ -3,6 +3,7 @@ name: Run_test
 on:
   pull_request:
     branches: [master]
+    types: [opened,synchronize,reopened,edited,labeled]
 
 jobs:
   build:
