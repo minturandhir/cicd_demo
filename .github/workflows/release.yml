@@ -1,0 +1,60 @@
+name: "Release Android build"
+
+on:
+  push:
+    branches: ["master"]
+
+jobs:
+  test:
+    name: Unit Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew clean testDebug
+
+  distribute:
+    name: Distribute Bundle for Testing
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Version bump
+        uses: chkfung/android-version-actions@master
+        with:
+          gradlePath: app/build.gradle.kts
+          versionCode: ${{ github.run_number }}
+
+      - name: Assemble Release Bundle
+        run: ./gradlew bundleRelease
+
+      - name: Sign Release
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/output/release
+          signingKeyBase64: ${{secrets.ANDROID_KEYSTORE}}
+          keyStorePassword: ${{secrets.ANDROID_KEYSTORE_PWD}}
+          alias: ${{secrets.ANDROID_KEYSTORE_ALIAS}}
+          keyPassword: ${{secrets.ANDROID_KEYSTORE_PWD}}
